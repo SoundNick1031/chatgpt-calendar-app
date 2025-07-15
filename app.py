@@ -1,24 +1,22 @@
 from flask import Flask, request, jsonify
-import datetime
-import os.path
+import os
 import pickle
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+from google.oauth2.credentials import Credentials
 
 SCOPES = ['https://www.googleapis.com/auth/calendar.events']
 app = Flask(__name__)
 
 def get_credentials():
     creds = None
-    if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
+    token_path = '/etc/secrets/token.pickle'  # Secret File にアップしたパス
+
+    if os.path.exists(token_path):
+        with open(token_path, 'rb') as token:
             creds = pickle.load(token)
     else:
-        flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
-        creds = flow.run_local_server(port=8080, open_browser=True)
-        with open('token.pickle', 'wb') as token:
-            pickle.dump(creds, token)
+        raise Exception("token.pickle が存在しません。ローカルで生成して Render に Secret File としてアップロードしてください。")
+
     return creds
 
 @app.route('/add_event', methods=['POST'])
@@ -27,6 +25,9 @@ def add_event():
     summary = data.get('summary')
     start_time = data.get('start_time')
     end_time = data.get('end_time')
+
+    if not summary or not start_time or not end_time:
+        return jsonify({'error': 'summary, start_time, end_time が必要です'}), 400
 
     creds = get_credentials()
     service = build('calendar', 'v3', credentials=creds)
@@ -37,9 +38,8 @@ def add_event():
         'end': {'dateTime': end_time, 'timeZone': 'Asia/Tokyo'},
     }
 
-    event = service.events().insert(calendarId='primary', body=event).execute()
-    return jsonify({'message': 'Event created', 'id': event.get('id')})
+    created_event = service.events().insert(calendarId='primary', body=event).execute()
+    return jsonify({'message': 'Event created', 'id': created_event.get('id')}), 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
-
