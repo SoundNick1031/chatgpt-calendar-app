@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 import os
-import pickle
+import json
+import base64
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
@@ -8,15 +9,16 @@ SCOPES = ['https://www.googleapis.com/auth/calendar.events']
 app = Flask(__name__)
 
 def get_credentials():
-    creds = None
-    token_path = '/etc/secrets/token.pickle' # Secret File にアップしたパス
+    # 環境変数から base64 文字列を取得
+    token_base64 = os.getenv('TOKEN_JSON_BASE64')
+    if not token_base64:
+        raise Exception("環境変数 TOKEN_JSON_BASE64 が設定されていません")
 
-    if os.path.exists(token_path):
-        with open(token_path, 'rb') as token:
-            creds = pickle.load(token)
-    else:
-        raise Exception("token.pickle が存在しません。ローカルで生成して Render に Secret File としてアップロードしてください。")
+    # base64 をデコードして JSON として読み込み
+    token_json_str = base64.b64decode(token_base64).decode('utf-8')
+    token_data = json.loads(token_json_str)
 
+    creds = Credentials.from_authorized_user_info(token_data, SCOPES)
     return creds
 
 @app.route('/add_event', methods=['POST'])
