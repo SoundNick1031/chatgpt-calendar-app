@@ -30,7 +30,11 @@ def add_event():
         end_time = data.get('end_time')
 
         if not summary or not start_time or not end_time:
-            return make_response(jsonify({'error': 'summary, start_time, end_time が必要です'}), 400)
+            return make_response(
+                jsonify({'error': 'summary, start_time, end_time が必要です'}),
+                400,
+                {"Content-Type": "application/json"}
+            )
 
         creds = get_credentials()
         service = build('calendar', 'v3', credentials=creds)
@@ -44,11 +48,19 @@ def add_event():
         created_event = service.events().insert(calendarId='primary', body=event).execute()
         print("イベント作成結果:", created_event)
 
-        return make_response(jsonify({'message': 'Event created', 'id': created_event.get('id')}), 200)
+        return make_response(
+            jsonify({'message': 'Event created', 'id': created_event.get('id')}),
+            200,
+            {"Content-Type": "application/json"}
+        )
 
     except Exception as e:
         print("エラー:", str(e))
-        return make_response(jsonify({'error': str(e)}), 500)
+        return make_response(
+            jsonify({'error': str(e)}),
+            500,
+            {"Content-Type": "application/json"}
+        )
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
