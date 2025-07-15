@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 def get_credentials():
     creds = None
-    token_path = '/etc/secrets/token.pickle'  # Secret File にアップしたパス
+    token_path = 'token.pickle'  # Secret File にアップしたパス
 
     if os.path.exists(token_path):
         with open(token_path, 'rb') as token:
